@@ -1,0 +1,94 @@
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+let player = { x:100, y:300, radius:15, dy:0 };
+let gravity = 0.4;
+let lift = -8;
+let obstacles = [];
+let frame = 0;
+let score = 0;
+let gameOver = false;
+
+// Key controls
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") player.dy = lift;
+});
+
+// Obstacle generator
+function createObstacle() {
+  let gap = 150;
+  let topHeight = Math.random() * (canvas.height - gap - 100) + 50;
+  obstacles.push({
+    x: canvas.width,
+    top: topHeight,
+    bottom: topHeight + gap,
+    width: 40
+  });
+}
+
+// Game loop
+function update() {
+  if (gameOver) return;
+
+  frame++;
+  if (frame % 90 === 0) createObstacle();
+
+  // Player physics
+  player.dy += gravity;
+  player.y += player.dy;
+
+  // Collision check
+  obstacles.forEach(obs => {
+    obs.x -= 4;
+    if (
+      player.x + player.radius > obs.x &&
+      player.x - player.radius < obs.x + obs.width &&
+      (player.y - player.radius < obs.top ||
+       player.y + player.radius > obs.bottom)
+    ) {
+      gameOver = true;
+    }
+  });
+
+  // Remove offscreen obstacles
+  obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+  // Score
+  score++;
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // Player
+  ctx.fillStyle = "cyan";
+  ctx.beginPath();
+  ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
+  ctx.fill();
+
+  // Obstacles
+  ctx.fillStyle = "lime";
+  obstacles.forEach(obs => {
+    ctx.fillRect(obs.x, 0, obs.width, obs.top);
+    ctx.fillRect(obs.x, obs.bottom, obs.width, canvas.height - obs.bottom);
+  });
+
+  // Score
+  ctx.fillStyle = "white";
+  ctx.font = "24px Arial";
+  ctx.fillText("Score: " + score, 20, 40);
+
+  if (gameOver) {
+    ctx.fillStyle = "red";
+    ctx.font = "48px Arial";
+    ctx.fillText("GAME OVER", canvas.width/2 - 120, canvas.height/2);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+loop();
